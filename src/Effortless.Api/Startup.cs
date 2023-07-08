@@ -1,13 +1,36 @@
 using Effortless.Api;
+using Effortless.Api.Definations;
+using Effortless.Core.Services.Logger;
 
-var builder = WebApplication.CreateBuilder(args);
+using Serilog;
+
+try
 {
-    // Add services to the container.
-    builder.Services.AddApiDependencies();
+    LoggerService.EnsureInitialized();
+    Log.Information($"{AppConstants.AssemblyInfo.Name} Booting Up..");
+
+    var builder = WebApplication.CreateBuilder(args);
+    {
+        // Add services to the container.
+        builder.Services.AddApiDependencies();
+    }
+
+    var app = builder.Build();
+    {
+        app.AddApiMiddlewares();
+        app.Run();
+    }
 }
-
-var app = builder.Build();
+catch (Exception ex) when (!ex.GetType().Name.Equals("StopTheHostException", StringComparison.Ordinal))
 {
-    app.AddApiMiddlewares();
-    app.Run();
+    LoggerService.EnsureInitialized();
+    Log.Error($"{AppConstants.AssemblyInfo.Name} Shutting down...");
+    Log.Fatal(ex, "Unhandled exception");
+    throw;
+}
+finally
+{
+    LoggerService.EnsureInitialized();
+    Log.Error($"{AppConstants.AssemblyInfo.Name} Shutting down...");
+    Log.CloseAndFlush();
 }
